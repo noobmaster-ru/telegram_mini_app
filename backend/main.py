@@ -48,15 +48,34 @@ async def handle_data(request: Request):
                 f"link_photo: {link_photo}"
             )
         reply += f"\n⏱ Время обработки: {exec_time:.2f} сек"
-        return JSONResponse(content={"result": reply, "status": "ok", "items": parsed}, status_code=200)
+        return JSONResponse(content={
+            "result": reply, 
+            "status": "ok",
+            "keyword": keyword, 
+            "items": parsed
+        }, status_code=200)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.post("/render")
 async def render_results(request: Request):
     data = await request.json()  # получаешь JSON от парсера
-    products = list(data.values())  # словарь nm_id -> объект, нужно в список
-    return templates.TemplateResponse("products.html", {"request": request, "products": products})
+    keyword = data.get("keyword")
+    items = data.get("items", {})
+
+    # преобразуем dict в список товаров
+    products = list(items.values())
+    mid = len(products) // 2
+    left_products = products[:mid]
+    right_products = products[mid:]
+
+
+    return templates.TemplateResponse("products.html", {
+        "request": request, 
+        "left_products": left_products,
+        "right_products": right_products,
+        "query": keyword
+    })
 
 @app.get("/")
 async def root():

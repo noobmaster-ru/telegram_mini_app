@@ -72,7 +72,7 @@
           fetch("/render", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data.items) // тут будет список товаров
+            body: JSON.stringify({ items: data.items, keyword: data.keyword }) // тут будет список товаров и ключевая фраза
           })
           .then(resp => resp.text())
           .then(html => {

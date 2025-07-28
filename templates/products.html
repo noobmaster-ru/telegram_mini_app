@@ -57,7 +57,7 @@
   bottom: 20px;
   left: 20px;
   padding: 10px 15px;
-  background-color: #6c757d;
+  background-color: #0e88f1;
   color: white;
   border: none;
   border-radius: 5px;
@@ -84,24 +84,70 @@
 
 <body>
 
-<h2>Результаты по запросу: <span style="color: blue;">"ваш запрос"</span></h2>
-<div class="product-grid">
+<h2>Результаты по запросу: <span style="color: blue;">"{{ query }}"</span></h2>
+    <div class="product-grid">
+        <style>
+    .columns {
+        display: flex;
+        gap: 20px;
+    }
+    .column {
+        flex: 1;
+    }
+    </style>
+
+    <div class="columns">
+        <div class="column">
+            {% for product in left_products %}
+            <div class="product-card">
+                <a href="{{ product.link }}" target="_blank">
+                    <img src="{{ product.link_to_photo }}" alt="Изображение товара">
+                </a>
+                <div class="product-info">
+                    <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
+                    <div class="price">{{ product.price }}₽</div>
+                    <div class="rating">
+                        ⭐ {{ product.nmReviewRating }} ({{ product.nmFeedbacks }} отзывов)<br>
+                        Органическая позиция: {{ product.organic_position }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="column">
+            {% for product in right_products %}
+            <div class="product-card">
+                <a href="{{ product.link }}" target="_blank">
+                    <img src="{{ product.link_to_photo }}" alt="Изображение товара">
+                </a>
+                <div class="product-info">
+                    <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
+                    <div class="price">{{ product.price }}₽</div>
+                    <div class="rating">
+                        ⭐ {{ product.nmReviewRating }} ({{ product.nmFeedbacks }} отзывов)<br>
+                        Органическая позиция: {{ product.organic_position }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     <!-- Пример карточки товара -->
-    {% for product in products %}
+    <!-- {% for product in products %}
     <div class="product-card">
         <a href="{{ product.link }}" target="_blank">
             <img src="{{ product.link_to_photo }}" alt="Изображение товара">
         </a>
         <div class="product-info">
-            <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
-            <div class="price">{{ product.price }}₽</div>
+            <a href="{{ product.link }}" target="_blank">{{ product.name }}</a> -->
+            <!-- <div class="price">{{ product.price }}₽</div>
             <div class="rating">
                 ⭐ {{ product.nmReviewRating }} ({{ product.nmFeedbacks }} отзывов)<br>
                 Органическая позиция: {{ product.organic_position }}
             </div>
         </div>
     </div>
-    {% endfor %}
+    {% endfor %} -->
 </div>
 
 </body>
