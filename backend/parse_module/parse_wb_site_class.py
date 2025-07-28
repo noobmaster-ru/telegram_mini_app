@@ -2,7 +2,9 @@ import aiohttp
 import math
 import asyncio
 import json
-
+# import requests
+# import os
+# import shutil
 
 class ParseWbSiteClass:
     def __init__(self, SEMAPHORE: asyncio.Semaphore):
@@ -113,7 +115,7 @@ class ParseWbSiteClass:
             price = await self.fetch_price(session, nm_id)
 
             return {
-                "id": product["id"],
+                "nm_id": product["id"],
                 "organic_position": organic_pos,
                 "promo_position": promo_pos,
                 "price": price,
@@ -122,7 +124,8 @@ class ParseWbSiteClass:
                 "page": int(page_number),
                 "link": f"https://www.wildberries.ru/catalog/{nm_id}/detail.aspx",
                 "name": product.get("name"),
-                "remains": product["wh"]
+                "remains": product["totalQuantity"],
+                "number_of_images": product["pics"]
             }
         except Exception:
             return None
@@ -159,7 +162,7 @@ class ParseWbSiteClass:
                         )
                         promo_position += 1
                     results = await asyncio.gather(*tasks)
-                    articles.update({item["id"]: item for item in results if item})
+                    articles.update({item["nm_id"]: item for item in results if item})
             except Exception as e:
                 print(f"Eror in parse_first_page , {str(e)[:300]}")
                 return {}
@@ -202,7 +205,92 @@ class ParseWbSiteClass:
                         )
                         promo_position += 1
                     results = await asyncio.gather(*tasks)
-                    articles.update({item["id"]: item for item in results if item})
+                    articles.update({item["nm_id"]: item for item in results if item})
             except Exception as e:
                 print(f"Error in parse_page_number_ {str(e)[:300]}")
                 return {}
+    
+
+    async def parse_photos(self, session: aiohttp.ClientSession, articles: dict):
+        tasks = []
+
+        for index, key in enumerate(articles):
+            tasks.append(self.download_photo(session, articles[key], index))
+
+        await asyncio.gather(*tasks)
+    
+    # основу кода функции взял с https://github.com/Duff89/wildberries_parser/blob/master/parser.py
+    async def download_photo(self, session: aiohttp.ClientSession, article: dict, index: int):
+        async with self.SEMAPHORE:
+            try:
+                nm_id = article["nm_id"]
+                short_nm_id = nm_id // 100000
+
+                # Определяем basket (сокращённый вариант не работает!)
+                if 0 <= short_nm_id <= 143:
+                    basket = '01'
+                elif 144 <= short_nm_id <= 287:
+                    basket = '02'
+                elif 288 <= short_nm_id <= 431:
+                    basket = '03'
+                elif 432 <= short_nm_id <= 719:
+                    basket = '04'
+                elif 720 <= short_nm_id <= 1007:
+                    basket = '05'
+                elif 1008 <= short_nm_id <= 1061:
+                    basket = '06'
+                elif 1062 <= short_nm_id <= 1115:
+                    basket = '07'
+                elif 1116 <= short_nm_id <= 1169:
+                    basket = '08'
+                elif 1170 <= short_nm_id <= 1313:
+                    basket = '09'
+                elif 1314 <= short_nm_id <= 1601:
+                    basket = '10'
+                elif 1602 <= short_nm_id <= 1655:
+                    basket = '11'
+                elif 1656 <= short_nm_id <= 1919:
+                    basket = '12'
+                elif 1920 <= short_nm_id <= 2045:
+                    basket = '13'
+                elif 2046 <= short_nm_id <= 2189:
+                    basket = '14'
+                elif 2190 <= short_nm_id <= 2405:
+                    basket = '15'
+                # здесь вб добавил новые basket - пришло добавить (см в network:  banners.js -> Response)
+                elif 2406 <= short_nm_id <= 2621:
+                    basket = '16'
+                elif 2622 <= short_nm_id <= 2837:
+                    basket = '17'
+                elif 2838 <= short_nm_id <= 3053:
+                    basket = '18'
+                elif 3054 <= short_nm_id <= 3269:
+                    basket = '19'
+                elif 3270 <= short_nm_id <= 3485:
+                    basket = '20'
+                elif 3486 <= short_nm_id <= 3701:
+                    basket = '21'
+                elif 3702 <= short_nm_id <= 3917:
+                    basket = '22'
+                elif 3918 <= short_nm_id <= 4133:
+                    basket = '23'
+                elif 4134 <= short_nm_id <= 4349:
+                    basket = '24'
+                elif 4350 <= short_nm_id <= 4565: 
+                    basket = '25'
+                else:
+                    basket = '26'
+                
+                # URL фото
+                url = f"https://basket-{basket}.wbbasket.ru/vol{short_nm_id}/part{nm_id // 1000}/{nm_id}/images/big/1.webp"
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        content = await response.read()
+                        article["link_to_photo"] = url
+                        # filename = f".data/images/nm_id_{index}_.webp"
+                        # with open(filename, 'wb') as f:
+                        #     f.write(content)
+                    else:
+                        print(f"⚠️ Failed to download {nm_id}, status: {response.status} , text = {response.content}")
+            except Exception as e:
+                print(f"❌ Error downloading photo for {article.get('nm_id')}: {e}")

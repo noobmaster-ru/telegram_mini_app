@@ -3,10 +3,12 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
 import time
-
-from backend.parse_module import main as parse_keyword
+import os
+from dotenv import load_dotenv
+from backend.parse_module.parse_init import main as parse_keyword
 
 app = FastAPI()
+load_dotenv()
 
 app.mount("/static", StaticFiles(directory="backend/static"), name="static")
 
@@ -21,7 +23,7 @@ async def handle_data(request: Request):
     print(f"🔍 Пользователь {user_id} ввёл запрос: {keyword}")
     start = time.perf_counter()
     try:
-        parsed = await parse_keyword(keyword)
+        parsed = await parse_keyword(keyword, NUMBER_OF_PARSING=int(os.getenv("NUMBER_OF_PARSING")))
         exec_time = time.perf_counter() - start
 
         if not parsed:
@@ -32,6 +34,7 @@ async def handle_data(request: Request):
             url = item.get("link")
             name = item.get("name")
             text = f'<a href="{url}">{name}</a>'
+            link_photo = f'<a href="{item['link_to_photo']}">Фото</a>'
             reply += (
                 f"\n{text}\n"
                 f"{item['price']}₽ (СПП = 30%)\n"
@@ -40,6 +43,7 @@ async def handle_data(request: Request):
                 f"Промо позиция: {item['promo_position']}\n"
                 f"Страница в поиске: {item['page']}\n"
                 f"Остатки: {item['remains']}\n"
+                f"link_photo: {link_photo}"
             )
         reply += f"\n⏱ Время обработки: {exec_time:.2f} сек"
         return JSONResponse(content={"result": reply, "status": "ok"}, status_code=200)
@@ -47,11 +51,6 @@ async def handle_data(request: Request):
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
-
-
-# @app.get("/", response_class=FileResponse)
-# async def root():
-#     return "backend/static/index.html"
 @app.get("/")
 async def root():
     return FileResponse("backend/static/index.html")
