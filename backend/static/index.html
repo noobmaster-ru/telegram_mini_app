@@ -30,6 +30,16 @@
     button:hover {
       background: #006fa6;
     }
+
+    #result {
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+
+    a {
+      color: #006fa6;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -38,13 +48,16 @@
   <input type="text" id="searchInput" placeholder="Введите запрос..." />
   <button onclick="sendData()">Отправить</button>
 
-  
+  <div id="result"></div> <!-- Здесь будет отображаться результат -->
+
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
     function sendData() {
       const query = document.getElementById("searchInput").value;
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "🔄 Выполняется поиск...";
 
       fetch("/handle", {
         method: "POST",
@@ -54,8 +67,17 @@
           user_id: tg.initDataUnsafe.user?.id ?? 0,
           search_text: query
         })
-      }).then(() => {
-        tg.showPopup({message: "Запрос отправлен!"});
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          resultDiv.innerHTML = data.result; // Вставляем как HTML
+        } else {
+          resultDiv.textContent = data.result || "Ничего не найдено.";
+        }
+      })
+      .catch(err => {
+        resultDiv.textContent = "❌ Ошибка запроса: " + err.message;
       });
     }
   </script>
