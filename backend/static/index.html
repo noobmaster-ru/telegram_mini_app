@@ -44,11 +44,22 @@
 </head>
 <body>
   <h2>Введите ключевую фразу</h2>
-
   <input type="text" id="searchInput" placeholder="Введите ключевую фразу..." />
   <button onclick="sendData()">Отправить</button>
 
-  <div id="result"></div> <!-- Здесь будет отображаться результат -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('searchInput');
+      
+      // Обработчик нажатия Enter в поле ввода
+      searchInput.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault(); // Предотвращаем стандартное поведение
+          sendData(); // Вызываем функцию отправки
+        }
+      });
+    });
+  </script>
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -89,36 +100,5 @@
       });
     }
   </script>
-  <!-- <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    function sendData() {
-      const query = document.getElementById("searchInput").value;
-      const resultDiv = document.getElementById("result");
-      resultDiv.textContent = "🔄 Выполняется поиск...";
-
-      fetch("/handle", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          query_id: tg.initDataUnsafe.query_id,
-          user_id: tg.initDataUnsafe.user?.id ?? 0,
-          search_text: query
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "ok") {
-          resultDiv.innerHTML = data.result; // Вставляем как HTML
-        } else {
-          resultDiv.textContent = data.result || "Ничего не найдено.";
-        }
-      })
-      .catch(err => {
-        resultDiv.textContent = "❌ Ошибка запроса: " + err.message;
-      });
-    }
-  </script> -->
 </body>
 </html>
