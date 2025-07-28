@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import asyncio
 import time
 import os
@@ -8,6 +9,7 @@ from dotenv import load_dotenv
 from backend.parse_module.parse_init import main as parse_keyword
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 load_dotenv()
 
 app.mount("/static", StaticFiles(directory="backend/static"), name="static")
@@ -46,10 +48,15 @@ async def handle_data(request: Request):
                 f"link_photo: {link_photo}"
             )
         reply += f"\n⏱ Время обработки: {exec_time:.2f} сек"
-        return JSONResponse(content={"result": reply, "status": "ok"}, status_code=200)
+        return JSONResponse(content={"result": reply, "status": "ok", "items": parsed}, status_code=200)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
+@app.post("/render")
+async def render_results(request: Request):
+    data = await request.json()  # получаешь JSON от парсера
+    products = list(data.values())  # словарь nm_id -> объект, нужно в список
+    return templates.TemplateResponse("products.html", {"request": request, "products": products})
 
 @app.get("/")
 async def root():

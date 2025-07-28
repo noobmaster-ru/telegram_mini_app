@@ -49,8 +49,47 @@
   <button onclick="sendData()">Отправить</button>
 
   <div id="result"></div> <!-- Здесь будет отображаться результат -->
-
   <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    function sendData() {
+      const query = document.getElementById("searchInput").value;
+
+      fetch("/handle", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          query_id: tg.initDataUnsafe.query_id,
+          user_id: tg.initDataUnsafe.user?.id ?? 0,
+          search_text: query
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "ok") {
+          // отправляем на render
+          fetch("/render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data.items) // тут будет список товаров
+          })
+          .then(resp => resp.text())
+          .then(html => {
+            document.open();
+            document.write(html); // заменим содержимое страницы
+            document.close();
+          });
+        } else {
+          document.getElementById("result").textContent = data.result || "Ничего не найдено.";
+        }
+      })
+      .catch(err => {
+        document.getElementById("result").textContent = "❌ Ошибка запроса: " + err.message;
+      });
+    }
+  </script>
+  <!-- <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
@@ -80,6 +119,6 @@
         resultDiv.textContent = "❌ Ошибка запроса: " + err.message;
       });
     }
-  </script>
+  </script> -->
 </body>
 </html>

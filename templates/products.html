@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результаты поиска</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f6f6f6;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+        }
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            text-align: center;
+            padding: 10px;
+        }
+        .product-card img {
+            width: 100%;
+            height: auto;
+            border-bottom: 1px solid #eee;
+        }
+        .product-info {
+            padding: 10px;
+        }
+        .product-info a {
+            font-size: 16px;
+            color: #1a0dab;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .product-info .price {
+            font-weight: bold;
+            font-size: 18px;
+            color: #222;
+        }
+        .product-info .rating {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<button onclick="goBack()" style="
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px 15px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 999;
+">⬅ Назад</button>
+
+<script>
+  function goBack() {
+    // Загружаем index.html и вставляем в DOM
+    fetch("/static/index.html")
+      .then(response => response.text())
+      .then(html => {
+        document.open();
+        document.write(html);
+        document.close();
+      })
+      .catch(err => {
+        alert("Ошибка возврата: " + err.message);
+      });
+  }
+</script>
+
+<body>
+
+<h2>Результаты по запросу: <span style="color: blue;">"ваш запрос"</span></h2>
+<div class="product-grid">
+    <!-- Пример карточки товара -->
+    {% for product in products %}
+    <div class="product-card">
+        <a href="{{ product.link }}" target="_blank">
+            <img src="{{ product.link_to_photo }}" alt="Изображение товара">
+        </a>
+        <div class="product-info">
+            <a href="{{ product.link }}" target="_blank">{{ product.name }}</a>
+            <div class="price">{{ product.price }}₽</div>
+            <div class="rating">
+                ⭐ {{ product.nmReviewRating }} ({{ product.nmFeedbacks }} отзывов)<br>
+                Органическая позиция: {{ product.organic_position }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>
