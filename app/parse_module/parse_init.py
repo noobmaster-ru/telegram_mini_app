@@ -3,7 +3,7 @@ import asyncio
 from itertools import islice
 import json
 
-from backend.parse_module.parse_wb_site_class import ParseWbSiteClass
+from app.parse_module.parse_wb_site_class import ParseWbSiteClass
 
 
 async def main(keyword: str, NUMBER_OF_PARSING: int):

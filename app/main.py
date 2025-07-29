@@ -6,13 +6,13 @@ import asyncio
 import time
 import os
 from dotenv import load_dotenv
-from backend.parse_module.parse_init import main as parse_keyword
+from app.parse_module.parse_init import main as parse_keyword
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/store")
 load_dotenv()
 
-app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+app.mount("/store", StaticFiles(directory="app/store"), name="store")
 
 @app.post("/handle")
 async def handle_data(request: Request):
@@ -79,4 +79,4 @@ async def render_results(request: Request):
 
 @app.get("/")
 async def root():
-    return FileResponse("backend/static/index.html")
+    return FileResponse("app/store/index.html")
