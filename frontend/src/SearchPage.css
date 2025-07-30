@@ -24,40 +24,49 @@
 }
 
 .product-card {
-  background-color: #f8f8f8;
-  border-radius: 12px;
-  border: 1px solid #ddd;
-  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px;
+  width: 100%;
+  max-width: 180px;
+  background-color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 12px; /* ↓ уменьшили базовый размер текста */
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .product-card img {
   width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 4px; /* было 8 */
 }
 
 .product-info {
-  margin-top: 10px;
+  text-align: center;
+  margin-top: 8px;
 }
 
 .product-name {
   font-weight: bold;
+  font-size: 10px; /* ↓ уменьшили имя товара */
   color: #333;
   text-decoration: none;
 }
 
+
 .product-price {
-  margin-top: 8px;
-  color: green;
-  font-weight: bold;
+  font-size: 11px; /* ↓ уменьшили цену */
+  margin: 4px 0;
+  color: #444;
 }
 
 .product-meta {
-  margin-top: 8px;
-  font-size: 0.9em;
+  font-size: 10px; /* ↓ уменьшили мета-инфо */
   color: #666;
+  line-height: 1.2;
 }
 
 .no-results {

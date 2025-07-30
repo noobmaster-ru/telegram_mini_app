@@ -8,9 +8,27 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchData, setSearchData] = useState(null); // ← данные от /render
+  const [history, setHistory] = useState([]); // Добавляем состояние для истории:
 
   const tg = window.Telegram?.WebApp;
+  const themeParams = tg?.themeParams;
+  console.log('Telegram initDataUnsafe:', tg?.initDataUnsafe);
 
+  const parseTelegramUserId = () => {
+    const searchParams = new URLSearchParams(tg?.initData || '');
+    const userParam = searchParams.get('user');
+    if (userParam) {
+      try {
+        const user = JSON.parse(userParam);
+        return user.id;
+      } catch (e) {
+        console.error("Ошибка парсинга user:", e);
+      }
+    }
+    return 0;
+  };
+
+  const userId = parseTelegramUserId();
   useEffect(() => {
     if (tg) tg.expand();
   }, [tg]);
@@ -31,7 +49,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query_id: tg?.initDataUnsafe?.query_id ?? '',
-          user_id: tg?.initDataUnsafe?.user?.id ?? 0,
+          user_id: userId, //tg?.initDataUnsafe?.user?.id ?? 0,
           search_text: query
         })
       });
@@ -56,6 +74,8 @@ function App() {
           leftProducts: renderData.left_products,
           rightProducts: renderData.right_products
         });
+        // Это добавит текущий query в начало истории и удалит дубли.
+        setHistory((prev) => [query, ...prev.filter(q => q !== query)]);
       } else {
         setError(data.result || "Ничего не найдено.");
       }
@@ -98,9 +118,31 @@ function App() {
     </>
   );
 
-  const renderCatalogTab = () => (
-    <div className="catalog-placeholder">
-      <p>Каталог пока в разработке 🛠</p>
+const renderCatalogTab = () => (
+    <div className="history-list">
+      {history.length === 0 ? (
+        <p>Введите ключевую фразу во вкладке Поиск</p>
+      ) : (
+        <ul>
+          {history.map((item, index) => (
+            <li key={index}>
+              <button
+                className="history-item"
+                style={{
+                  color: themeParams?.text_color || '#000'
+                }}
+                onClick={() => {
+                  setQuery(item);
+                  setActiveTab('search');
+                  setTimeout(() => handleSubmit(), 0); // немного позже, чтобы успел переключиться
+                }}
+              >
+                {item}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 
@@ -115,7 +157,7 @@ function App() {
           className={activeTab === 'catalog' ? 'tab-button active' : 'tab-button'}
           onClick={() => setActiveTab('catalog')}
         >
-          Каталог
+          История запросов
         </button>
         <button
           className={activeTab === 'search' ? 'tab-button active' : 'tab-button'}

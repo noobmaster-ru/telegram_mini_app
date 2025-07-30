@@ -45,7 +45,7 @@ async def handle_data(request: Request):
     data = await request.json()
     keyword = data.get("search_text")
     user_id = data.get("user_id")
-
+    
     if not keyword:
         return JSONResponse(content={"error": "No keyword provided"}, status_code=400)
     print(f"🔍 Пользователь {user_id} ввёл запрос: {keyword}")
