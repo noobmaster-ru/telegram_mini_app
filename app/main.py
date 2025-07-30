@@ -9,10 +9,36 @@ from dotenv import load_dotenv
 from app.parse_module.parse_init import main as parse_keyword
 
 app = FastAPI()
+
+# Путь к фронту
+frontend_build_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "build")
+
+# Раздача статики: JS, CSS, images, fonts
+app.mount("/static", StaticFiles(directory=os.path.join(frontend_build_path, "static")), name="static")
+
+
 templates = Jinja2Templates(directory="app/store")
 load_dotenv()
 
+# Раздача HTML-шаблонов Jinja
 app.mount("/store", StaticFiles(directory="app/store"), name="store")
+
+
+# Главная страница (SPA React)
+@app.get("/")
+async def serve_root():
+    index_path = os.path.join(frontend_build_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"error": "React app not found"}
+
+# React Router поддержка — все пути на клиенте
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    index_path = os.path.join(frontend_build_path, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"error": "React app not found"}
 
 @app.post("/handle")
 async def handle_data(request: Request):
@@ -77,6 +103,6 @@ async def render_results(request: Request):
         "query": keyword
     })
 
-@app.get("/")
-async def root():
-    return FileResponse("app/store/index.html")
+# @app.get("/")
+# async def root():
+#     return FileResponse("app/store/index.html")
