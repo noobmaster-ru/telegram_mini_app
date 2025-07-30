@@ -39,13 +39,6 @@
 
 
 
-.App {
-  font-family: sans-serif;
-  padding: 20px;
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
-}
 
 input[type="text"] {
   width: 100%;
@@ -68,3 +61,166 @@ button:disabled {
   background: #aaa;
   cursor: not-allowed;
 }
+
+
+
+.App {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.search-button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  background-color: #0088cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+.bottom-panel {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px;
+  border-top: 1px solid #ccc;
+  background-color: #f7f7f7;
+}
+
+.tab-button {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  background: none;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  font-weight: bold;
+  color: #0088cc;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+}
+
+.catalog-placeholder {
+  text-align: center;
+  color: #555;
+  margin-top: 40px;
+}
+
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.search-header {
+  padding: 10px;
+  background-color: #f5f5f5;
+  text-align: center;
+}
+
+.search-input {
+  width: 90%;
+  padding: 8px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.tab-bar {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background-color: #eee;
+  border-top: 1px solid #ccc;
+}
+
+.tab {
+  flex-grow: 1;
+  padding: 10px;
+  font-size: 16px;
+  background: none;
+  border: none;
+  color: gray;
+  font-weight: bold;
+}
+
+.tab.active {
+  color: white;
+  background-color: #007bff;
+  border-radius: 10px;
+}
+
+
+
+.tab-button {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  background: #eee;
+  color: #333;
+}
+
+.tab-button.active {
+  background: #0088cc;
+  color: white;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.search-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #0088cc;
+  color: white;
+  border: none;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+

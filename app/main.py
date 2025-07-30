@@ -95,13 +95,18 @@ async def render_results(request: Request):
     left_products = products[:mid]
     right_products = products[mid:]
 
-
-    return templates.TemplateResponse("products.html", {
-        "request": request, 
+    return JSONResponse({
+        "keyword": keyword,
         "left_products": left_products,
-        "right_products": right_products,
-        "query": keyword
-    })
+        "right_products": right_products
+    }, status_code=200)
+
+    # return templates.TemplateResponse("products.html", {
+    #     "request": request, 
+    #     "left_products": left_products,
+    #     "right_products": right_products,
+    #     "query": keyword
+    # })
 
 # @app.get("/")
 # async def root():
