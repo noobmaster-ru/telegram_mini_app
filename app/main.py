@@ -7,6 +7,7 @@ import time
 import os
 from dotenv import load_dotenv
 from app.parse_module.parse_init import main as parse_keyword
+import shutil
 
 app = FastAPI()
 
@@ -51,6 +52,10 @@ async def handle_data(request: Request):
     print(f"🔍 Пользователь {user_id} ввёл запрос: {keyword}")
     start = time.perf_counter()
     try:
+        # очищаем данные по прошлому запросу
+        shutil.rmtree(".data")
+        os.makedirs(".data", exist_ok=True)
+
         parsed = await parse_keyword(keyword, NUMBER_OF_PARSING=int(os.getenv("NUMBER_OF_PARSING")))
         exec_time = time.perf_counter() - start
 
@@ -67,11 +72,14 @@ async def handle_data(request: Request):
                 f"\n{text}\n"
                 f"{item['price']}₽ (СПП = 30%)\n"
                 f"{item['nmReviewRating']}⭐ ({item['nmFeedbacks']} отзывов)\n"
+                f"Рейтинг последних 5 отзывов: {data['five_last_feedbacks_rating']} \n"
                 f"Органическая позиция: {item['organic_position']}\n"
                 f"Промо позиция: {item['promo_position']}\n"
                 f"Страница в поиске: {item['page']}\n"
                 f"Остатки: {item['remains']}\n"
-                f"link_photo: {link_photo}"
+                f"Cсылка на фото(на первое): {data['link_to_photos'].split(';')[0]}\n"
+                f"\nОписание: {data['description'][:100]}...\n"
+                f"\nТекст последнего отзыва (Оценка {data['rate_of_last_feedback']}): {data['text_of_last_feedback'][:100]}...\n"
             )
         reply += f"\n⏱ Время обработки: {exec_time:.2f} сек"
         return JSONResponse(content={
@@ -100,14 +108,3 @@ async def render_results(request: Request):
         "left_products": left_products,
         "right_products": right_products
     }, status_code=200)
-
-    # return templates.TemplateResponse("products.html", {
-    #     "request": request, 
-    #     "left_products": left_products,
-    #     "right_products": right_products,
-    #     "query": keyword
-    # })
-
-# @app.get("/")
-# async def root():
-#     return FileResponse("app/store/index.html")

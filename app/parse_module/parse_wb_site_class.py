@@ -1,14 +1,20 @@
 import aiohttp
-import math
 import asyncio
 import json
-# import requests
-# import os
-# import shutil
 
-class ParseWbSiteClass:
-    def __init__(self, SEMAPHORE: asyncio.Semaphore):
-        self.SEMAPHORE = SEMAPHORE
+
+from app.parse_module.parsing_features.parse_price import ParsePrice
+from app.parse_module.parsing_features.parse_photo import ParsePhoto
+from app.parse_module.parsing_features.parse_description import ParseDescription
+from app.parse_module.parsing_features.tools import Tools
+from app.parse_module.parsing_features.parse_feedbacks import ParseFiveLastFeedback
+from app.parse_module.parsing_features.parse_video import ParseVideo
+
+
+class ParseWbSiteClass(
+    ParsePrice, ParsePhoto, ParseDescription, Tools, ParseFiveLastFeedback, ParseVideo
+):
+    def __init__(self):
         self.PARAMS_PARSE_PAGE_TEMPLATE = {
             "ab_testid": "pfact_gr_1",
             "appType": "1",
@@ -44,63 +50,7 @@ class ParseWbSiteClass:
             "x-userid": "54570326",
         }
 
-    def sort_key(self, item: dict):
-        organic_pos = item[1]["organic_position"]
-        return (organic_pos is None, organic_pos or 0)
-
-    async def parse_card(self, session: aiohttp.ClientSession, nm_id: str) -> int | str:
-        try:
-            params = {
-                "appType": "1",
-                "curr": "rub",
-                "dest": "-446115",
-                "spp": "30",
-                "hide_dtype": "14",
-                "ab_testing": "false",
-                "lang": "ru",
-                "nm": nm_id,
-            }
-            async with session.get(
-                "https://card.wb.ru/cards/v4/detail", params=params
-            ) as resp:
-                data = await resp.json()
-                return data["products"][0]["sizes"][0]["price"]["product"]
-        except Exception:
-            return "Нет в наличии"
-
-    async def parse_grade(
-        self, session: aiohttp.ClientSession, nm_id: str
-    ) -> int | str:
-        try:
-            params = {"curr": "RUB"}
-            headers = self.HEADERS_PARSE_PAGE_TEMPLATE.copy()
-            del headers["x-queryid"]
-            del headers["x-userid"]
-            headers["referer"] = (
-                f"https://www.wildberries.ru/catalog/{nm_id}/detail.aspx?targetUrl=SP"
-            )
-
-            async with session.get(
-                "https://user-grade.wildberries.ru/api/v5/grade",
-                params=params,
-                headers=headers,
-            ) as resp:
-                data = await resp.json()
-                return data["payload"]["payments"][0]["full_discount"]
-        except Exception:
-            return "Нет в наличии"
-
-    async def fetch_price(self, session: aiohttp.ClientSession, nm_id: str) -> dict:
-        full_discount = await self.parse_grade(session, nm_id)
-        price = await self.parse_card(session, nm_id)
-
-        if isinstance(full_discount, int) and isinstance(price, int):
-            wallet_price = math.floor((price / 100) * (1 - full_discount / 100))
-            return wallet_price
-        else:
-            return "Нет в наличии"
-
-    async def build_article(
+    async def build_data_nm_id(
         self,
         session: aiohttp.ClientSession,
         product: dict,
@@ -112,7 +62,12 @@ class ParseWbSiteClass:
             organic_pos = product["log"].get("position", None)
             promo_pos = product["log"].get("promoPosition", promo_position)
 
-            price = await self.fetch_price(session, nm_id)
+            description, list_of_nm_ids = await self.parse_description(session, nm_id)
+            price = await self.fetch_price(session, nm_id, list_of_nm_ids)
+
+            last_five_feedbacks_rating_with_text_and_rate = (
+                await self.parse_last_five_feedbacks_rating(session, nm_id)
+            )
 
             return {
                 "nm_id": product["id"],
@@ -121,11 +76,21 @@ class ParseWbSiteClass:
                 "price": price,
                 "nmFeedbacks": product.get("nmFeedbacks"),
                 "nmReviewRating": product.get("nmReviewRating"),
+                "five_last_feedbacks_rating": last_five_feedbacks_rating_with_text_and_rate[
+                    0
+                ],
+                "text_of_last_feedback": last_five_feedbacks_rating_with_text_and_rate[
+                    1
+                ],
+                "rate_of_last_feedback": last_five_feedbacks_rating_with_text_and_rate[
+                    2
+                ],
                 "page": int(page_number),
                 "link": f"https://www.wildberries.ru/catalog/{nm_id}/detail.aspx",
                 "name": product.get("name"),
                 "remains": product["totalQuantity"],
-                "number_of_images": product["pics"]
+                "number_of_images": product["pics"],
+                "description": description,
             }
         except Exception:
             return None
@@ -133,39 +98,38 @@ class ParseWbSiteClass:
     async def parse_first_page(
         self, session: aiohttp.ClientSession, keyword: str, articles: dict
     ) -> dict:
-        async with self.SEMAPHORE:
-            try:
-                headers = self.HEADERS_PARSE_PAGE_TEMPLATE.copy()
-                headers["referer"] = (
-                    "https://www.wildberries.ru/catalog/0/search.aspx?search=%D0%B1%D1%83%D1%82%D1%8B%D0%BB%D0%BA%D0%B0%20%D0%B4%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F"
-                )
+        try:
+            headers = self.HEADERS_PARSE_PAGE_TEMPLATE.copy()
+            headers["referer"] = (
+                "https://www.wildberries.ru/catalog/0/search.aspx?search=%D0%B1%D1%83%D1%82%D1%8B%D0%BB%D0%BA%D0%B0%20%D0%B4%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F"
+            )
 
-                params = self.PARAMS_PARSE_PAGE_TEMPLATE.copy()
-                params["page"] = "1"
-                params["query"] = keyword
+            params = self.PARAMS_PARSE_PAGE_TEMPLATE.copy()
+            params["page"] = "1"
+            params["query"] = keyword
 
-                async with session.get(
-                    "https://search.wb.ru/exactmatch/ru/common/v14/search",
-                    params=params,
-                    headers=headers,
-                ) as response:
-                    data_json = json.loads(
-                        await response.text()
-                    )  # response.json() выдает error: 200, message='Attempt to decode JSON with unexpected mimetype: text/plain;
-                    products = data_json.get("products")
+            async with session.get(
+                "https://search.wb.ru/exactmatch/ru/common/v14/search",
+                params=params,
+                headers=headers,
+            ) as response:
+                data_json = json.loads(
+                    await response.text()
+                )  # response.json() выдает error: 200, message='Attempt to decode JSON with unexpected mimetype: text/plain;
+                products = data_json.get("products")
 
-                    promo_position = 0
-                    tasks = []
-                    for product in products:
-                        tasks.append(
-                            self.build_article(session, product, 1, promo_position)
-                        )
-                        promo_position += 1
-                    results = await asyncio.gather(*tasks)
-                    articles.update({item["nm_id"]: item for item in results if item})
-            except Exception as e:
-                print(f"Eror in parse_first_page , {str(e)[:300]}")
-                return {}
+                promo_position = 0
+                tasks = []
+                for product in products:
+                    tasks.append(
+                        self.build_data_nm_id(session, product, 1, promo_position)
+                    )
+                    promo_position += 1
+                results = await asyncio.gather(*tasks)
+                articles.update({item["nm_id"]: item for item in results if item})
+        except Exception as e:
+            print(f"Eror in parse_first_page , {str(e)[:300]}")
+            return {}
 
     async def parse_page_number_(
         self,
@@ -174,123 +138,37 @@ class ParseWbSiteClass:
         page_number: str,
         articles: dict,
     ) -> dict:
-        async with self.SEMAPHORE:
-            try:
-                headers = self.HEADERS_PARSE_PAGE_TEMPLATE.copy()
-                headers["referer"] = (
-                    f"https://www.wildberries.ru/catalog/0/search.aspx?page={page_number}&sort=popular&search=%D0%B1%D1%83%D1%82%D1%8B%D0%BB%D0%BA%D0%B0+%D0%B4%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F"
-                )
+        try:
+            headers = self.HEADERS_PARSE_PAGE_TEMPLATE.copy()
+            headers["referer"] = (
+                f"https://www.wildberries.ru/catalog/0/search.aspx?page={page_number}&sort=popular&search=%D0%B1%D1%83%D1%82%D1%8B%D0%BB%D0%BA%D0%B0+%D0%B4%D0%B5%D1%82%D1%81%D0%BA%D0%B0%D1%8F"
+            )
 
-                params = self.PARAMS_PARSE_PAGE_TEMPLATE.copy()
-                params["page"] = page_number
-                params["query"] = keyword
+            params = self.PARAMS_PARSE_PAGE_TEMPLATE.copy()
+            params["page"] = page_number
+            params["query"] = keyword
 
-                async with session.get(
-                    "https://search.wb.ru/exactmatch/ru/common/v14/search",
-                    params=params,
-                    headers=headers,
-                ) as response:
-                    data_json = json.loads(
-                        await response.text()
-                    )  # response.json() выдает error: 200, message='Attempt to decode JSON with unexpected mimetype: text/plain;
-                    products = data_json.get("products")
-                    promo_position = 0
+            async with session.get(
+                "https://search.wb.ru/exactmatch/ru/common/v14/search",
+                params=params,
+                headers=headers,
+            ) as response:
+                data_json = json.loads(
+                    await response.text()
+                )  # response.json() выдает error: 200, message='Attempt to decode JSON with unexpected mimetype: text/plain;
+                products = data_json.get("products")
+                promo_position = 0
 
-                    tasks = []
-                    for product in products:
-                        tasks.append(
-                            self.build_article(
-                                session, product, page_number, promo_position
-                            )
+                tasks = []
+                for product in products:
+                    tasks.append(
+                        self.build_data_nm_id(
+                            session, product, page_number, promo_position
                         )
-                        promo_position += 1
-                    results = await asyncio.gather(*tasks)
-                    articles.update({item["nm_id"]: item for item in results if item})
-            except Exception as e:
-                print(f"Error in parse_page_number_ {str(e)[:300]}")
-                return {}
-    
-
-    async def parse_photos(self, session: aiohttp.ClientSession, articles: dict):
-        tasks = []
-
-        for index, key in enumerate(articles):
-            tasks.append(self.download_photo(session, articles[key], index))
-
-        await asyncio.gather(*tasks)
-    
-    # основу кода функции взял с https://github.com/Duff89/wildberries_parser/blob/master/parser.py
-    async def download_photo(self, session: aiohttp.ClientSession, article: dict, index: int):
-        async with self.SEMAPHORE:
-            try:
-                nm_id = article["nm_id"]
-                short_nm_id = nm_id // 100000
-
-                # Определяем basket (сокращённый вариант не работает!)
-                if 0 <= short_nm_id <= 143:
-                    basket = '01'
-                elif 144 <= short_nm_id <= 287:
-                    basket = '02'
-                elif 288 <= short_nm_id <= 431:
-                    basket = '03'
-                elif 432 <= short_nm_id <= 719:
-                    basket = '04'
-                elif 720 <= short_nm_id <= 1007:
-                    basket = '05'
-                elif 1008 <= short_nm_id <= 1061:
-                    basket = '06'
-                elif 1062 <= short_nm_id <= 1115:
-                    basket = '07'
-                elif 1116 <= short_nm_id <= 1169:
-                    basket = '08'
-                elif 1170 <= short_nm_id <= 1313:
-                    basket = '09'
-                elif 1314 <= short_nm_id <= 1601:
-                    basket = '10'
-                elif 1602 <= short_nm_id <= 1655:
-                    basket = '11'
-                elif 1656 <= short_nm_id <= 1919:
-                    basket = '12'
-                elif 1920 <= short_nm_id <= 2045:
-                    basket = '13'
-                elif 2046 <= short_nm_id <= 2189:
-                    basket = '14'
-                elif 2190 <= short_nm_id <= 2405:
-                    basket = '15'
-                # здесь вб добавил новые basket - пришло добавить (см в network:  banners.js -> Response)
-                elif 2406 <= short_nm_id <= 2621:
-                    basket = '16'
-                elif 2622 <= short_nm_id <= 2837:
-                    basket = '17'
-                elif 2838 <= short_nm_id <= 3053:
-                    basket = '18'
-                elif 3054 <= short_nm_id <= 3269:
-                    basket = '19'
-                elif 3270 <= short_nm_id <= 3485:
-                    basket = '20'
-                elif 3486 <= short_nm_id <= 3701:
-                    basket = '21'
-                elif 3702 <= short_nm_id <= 3917:
-                    basket = '22'
-                elif 3918 <= short_nm_id <= 4133:
-                    basket = '23'
-                elif 4134 <= short_nm_id <= 4349:
-                    basket = '24'
-                elif 4350 <= short_nm_id <= 4565: 
-                    basket = '25'
-                else:
-                    basket = '26'
-                
-                # URL фото
-                url = f"https://basket-{basket}.wbbasket.ru/vol{short_nm_id}/part{nm_id // 1000}/{nm_id}/images/big/1.webp"
-                async with session.get(url) as response:
-                    if response.status == 200:
-                        content = await response.read()
-                        article["link_to_photo"] = url
-                        # filename = f".data/images/nm_id_{index}_.webp"
-                        # with open(filename, 'wb') as f:
-                        #     f.write(content)
-                    else:
-                        print(f"⚠️ Failed to download {nm_id}, status: {response.status} , text = {response.content}")
-            except Exception as e:
-                print(f"❌ Error downloading photo for {article.get('nm_id')}: {e}")
+                    )
+                    promo_position += 1
+                results = await asyncio.gather(*tasks)
+                articles.update({item["nm_id"]: item for item in results if item})
+        except Exception as e:
+            print(f"Error in parse_page_number_ {str(e)[:300]}")
+            return {}
